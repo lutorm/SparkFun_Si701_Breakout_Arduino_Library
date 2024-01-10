@@ -72,8 +72,13 @@ bool Weather<WireType>::begin(WireType & wire)
     //Serial.println(ID_Temp_Hum, HEX);
   }
   else
-  	Serial.println("No Devices Detected");
-  	//Serial.println(ID_Temp_Hum, HEX);
+  {
+    Serial.println("No Devices Detected");
+    //Serial.println(ID_Temp_Hum, HEX);
+    return false;
+  }
+
+  return true;
 }
 
 /****************Si7021 & HTU21D Functions**************************************/
