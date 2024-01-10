@@ -34,6 +34,9 @@
 #define SparkFun_Si7021_Breakout_Library_h
 
 #include <Arduino.h>
+#ifdef QW_SOFTWAREWIRE
+#include <SoftwareWire.h>
+#endif
 
 /****************Si7021 & HTU21D Definitions***************************/
 
@@ -60,13 +63,14 @@
 
 
 /****************Si7021 & HTU21D Class**************************************/
+template <typename WireType>
 class Weather
 {
 public:
 	// Constructor
 	Weather();
 
-	bool  begin();
+	bool  begin(WireType &);
 
 	// Si7021 & HTU21D Public Functions
 	float getRH();
@@ -87,6 +91,8 @@ private:
 	uint16_t makeMeasurment(uint8_t command);
 	void     writeReg(uint8_t value);
 	uint8_t  readReg();
+
+        WireType * _wire;
 };
 
 #endif

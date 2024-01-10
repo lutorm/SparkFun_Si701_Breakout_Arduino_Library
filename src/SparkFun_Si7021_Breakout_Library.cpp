@@ -40,11 +40,15 @@
 #include <util/delay.h>
 
  //Initialize
- Weather::Weather(){}
+template <typename WireType>
+Weather<WireType>::Weather() : _wire(nullptr) {}
 
- bool Weather::begin(void)
+template <typename WireType>
+bool Weather<WireType>::begin(WireType & wire)
 {
-  Wire.begin();
+  _wire = &wire;
+  
+  _wire->begin();
 
   uint8_t ID_Temp_Hum = checkID();
 
@@ -75,7 +79,8 @@
 /****************Si7021 & HTU21D Functions**************************************/
 
 
-float Weather::getRH()
+template <typename WireType>
+float Weather<WireType>::getRH()
 {
 	// Measure the relative humidity
 	uint16_t RH_Code = makeMeasurment(HUMD_MEASURE_NOHOLD);
@@ -83,7 +88,8 @@ float Weather::getRH()
 	return result;
 }
 
-float Weather::readTemp()
+template <typename WireType>
+float Weather<WireType>::readTemp()
 {
 	// Read temperature from previous RH measurement.
 	uint16_t temp_Code = makeMeasurment(TEMP_PREV);
@@ -91,7 +97,8 @@ float Weather::readTemp()
 	return result;
 }
 
-float Weather::getTemp()
+template <typename WireType>
+float Weather<WireType>::getTemp()
 {
 	// Measure temperature
 	uint16_t temp_Code = makeMeasurment(TEMP_MEASURE_NOHOLD);
@@ -99,18 +106,21 @@ float Weather::getTemp()
 	return result;
 }
 //Give me temperature in fahrenheit!
-float Weather::readTempF()
+template <typename WireType>
+float Weather<WireType>::readTempF()
 {
   return((readTemp() * 1.8) + 32.0); // Convert celsius to fahrenheit
 }
 
-float Weather::getTempF()
+template <typename WireType>
+float Weather<WireType>::getTempF()
 {
   return((getTemp() * 1.8) + 32.0); // Convert celsius to fahrenheit
 }
 
 
-void Weather::heaterOn()
+template <typename WireType>
+void Weather<WireType>::heaterOn()
 {
 	// Turns on the ADDRESS heater
 	uint8_t regVal = readReg();
@@ -119,7 +129,8 @@ void Weather::heaterOn()
 	writeReg(regVal);
 }
 
-void Weather::heaterOff()
+template <typename WireType>
+void Weather<WireType>::heaterOff()
 {
 	// Turns off the ADDRESS heater
 	uint8_t regVal = readReg();
@@ -127,7 +138,8 @@ void Weather::heaterOff()
 	writeReg(regVal);
 }
 
-void Weather::changeResolution(uint8_t i)
+template <typename WireType>
+void Weather<WireType>::changeResolution(uint8_t i)
 {
 	// Changes to resolution of ADDRESS measurements.
 	// Set i to:
@@ -157,30 +169,33 @@ void Weather::changeResolution(uint8_t i)
 	writeReg(regVal);
 }
 
-void Weather::reset()
+template <typename WireType>
+void Weather<WireType>::reset()
 {
 	//Reset user resister
 	writeReg(SOFT_RESET);
 }
 
-uint8_t Weather::checkID()
+template <typename WireType>
+uint8_t Weather<WireType>::checkID()
 {
 	uint8_t ID_1;
 
  	// Check device ID
-	Wire.beginTransmission(ADDRESS);
-	Wire.write(0xFC);
-	Wire.write(0xC9);
-	Wire.endTransmission();
+	_wire->beginTransmission(ADDRESS);
+	_wire->write(0xFC);
+	_wire->write(0xC9);
+	_wire->endTransmission();
 
-    Wire.requestFrom(ADDRESS,1);
+    _wire->requestFrom(ADDRESS,1);
 
-    ID_1 = Wire.read();
+    ID_1 = _wire->read();
 
     return(ID_1);
 }
 
-uint16_t Weather::makeMeasurment(uint8_t command)
+template <typename WireType>
+uint16_t Weather<WireType>::makeMeasurment(uint8_t command)
 {
 	// Take one ADDRESS measurement given by command.
 	// It can be either temperature or relative humidity
@@ -190,20 +205,20 @@ uint16_t Weather::makeMeasurment(uint8_t command)
 	// if we are only reading old temperature, read olny msb and lsb
 	if (command == 0xE0) nBytes = 2;
 
-	Wire.beginTransmission(ADDRESS);
-	Wire.write(command);
-	Wire.endTransmission();
+	_wire->beginTransmission(ADDRESS);
+	_wire->write(command);
+	_wire->endTransmission();
 	// When not using clock stretching (*_NOHOLD commands) delay here
 	// is needed to wait for the measurement.
 	// According to datasheet the max. conversion time is ~22ms
         _delay_ms(100);
 
-	Wire.requestFrom(ADDRESS,nBytes);
-	if(Wire.available() != nBytes)
+	_wire->requestFrom(ADDRESS,nBytes);
+	if(_wire->available() != nBytes)
   	return 100;
 	
-	unsigned int msb = Wire.read();
-	unsigned int lsb = Wire.read();
+	unsigned int msb = _wire->read();
+	unsigned int lsb = _wire->read();
 	// Clear the last to bits of LSB to 00.
 	// According to datasheet LSB of RH is always xxxxxx10
 	lsb &= 0xFC;
@@ -212,22 +227,29 @@ uint16_t Weather::makeMeasurment(uint8_t command)
 	return mesurment;
 }
 
-void Weather::writeReg(uint8_t value)
+template <typename WireType>
+void Weather<WireType>::writeReg(uint8_t value)
 {
 	// Write to user register on ADDRESS
-	Wire.beginTransmission(ADDRESS);
-	Wire.write(WRITE_USER_REG);
-	Wire.write(value);
-	Wire.endTransmission();
+	_wire->beginTransmission(ADDRESS);
+	_wire->write(WRITE_USER_REG);
+	_wire->write(value);
+	_wire->endTransmission();
 }
 
-uint8_t Weather::readReg()
+template <typename WireType>
+uint8_t Weather<WireType>::readReg()
 {
 	// Read from user register on ADDRESS
-	Wire.beginTransmission(ADDRESS);
-	Wire.write(READ_USER_REG);
-	Wire.endTransmission();
-	Wire.requestFrom(ADDRESS,1);
-	uint8_t regVal = Wire.read();
+	_wire->beginTransmission(ADDRESS);
+	_wire->write(READ_USER_REG);
+	_wire->endTransmission();
+	_wire->requestFrom(ADDRESS,1);
+	uint8_t regVal = _wire->read();
 	return regVal;
 }
+
+template class Weather<TwoWire>;
+#ifdef QW_SOFTWAREWIRE
+template class Weather<SoftwareWire>;
+#endif
